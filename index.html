@@ -1,961 +1,881 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  CheckCircle2, 
-  Plus, 
-  Trash2, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Clock, 
-  ListTodo,
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-  Sparkles,
-  ToggleLeft,
-  ToggleRight,
-  Settings,
-  PartyPopper,
-  Sun,
-  Cloud,
-  CloudRain,
-  CloudSnow,
-  CloudLightning,
-  MapPin,
-  Volume2,
-  VolumeX
-} from 'lucide-react';
-
-// --- Holidays Data (2024-2026) ---
-const HOLIDAYS = {
-  "2024-01-01": "元日", "2024-01-08": "成人の日", "2024-02-11": "建国記念の日", "2024-02-12": "振替休日",
-  "2024-02-23": "天皇誕生日", "2024-03-20": "春分の日", "2024-04-29": "昭和の日", "2024-05-03": "憲法記念日",
-  "2024-05-04": "みどりの日", "2024-05-05": "こどもの日", "2024-05-06": "振替休日", "2024-07-15": "海の日",
-  "2024-08-11": "山の日", "2024-08-12": "振替休日", "2024-09-16": "敬老の日", "2024-09-22": "秋分の日",
-  "2024-09-23": "振替休日", "2024-10-14": "スポーツの日", "2024-11-03": "文化の日", "2024-11-04": "振替休日",
-  "2024-11-23": "勤労感謝の日",
-  
-  "2025-01-01": "元日", "2025-01-13": "成人の日", "2025-02-11": "建国記念の日", "2025-02-23": "天皇誕生日",
-  "2025-02-24": "振替休日", "2025-03-20": "春分の日", "2025-04-29": "昭和の日", "2025-05-03": "憲法記念日",
-  "2025-05-04": "みどりの日", "2025-05-05": "こどもの日", "2025-05-06": "振替休日", "2025-07-21": "海の日",
-  "2025-08-11": "山の日", "2025-09-15": "敬老の日", "2025-09-23": "秋分の日", "2025-10-13": "スポーツの日",
-  "2025-11-03": "文化の日", "2025-11-23": "勤労感謝の日", "2025-11-24": "振替休日",
-
-  "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日", "2026-02-23": "天皇誕生日",
-  "2026-03-20": "春分の日", "2026-04-29": "昭和の日", "2026-05-03": "憲法記念日", "2026-05-04": "みどりの日",
-  "2026-05-05": "こどもの日", "2026-05-06": "振替休日", "2026-07-20": "海の日", "2026-08-11": "山の日",
-  "2026-09-21": "敬老の日", "2026-09-22": "国民の休日", "2026-09-23": "秋分の日", "2026-10-12": "スポーツの日",
-  "2026-11-03": "文化の日", "2026-11-23": "勤労感謝の日"
-};
-
-// --- Events Data (2024-2026) ---
-const EVENTS = {
-  // 2024
-  "2024-02-03": "👹 節分", "2024-02-14": "🍫 バレンタイン", "2024-03-03": "🎎 ひな祭り", "2024-03-14": "🍪 ホワイトデー",
-  "2024-07-07": "🎋 七夕", "2024-10-31": "🎃 ハロウィン", "2024-12-24": "🎄 クリスマスイブ", "2024-12-25": "🎅 クリスマス",
-  "2024-12-31": "🔔 大晦日",
-  // 2025
-  "2025-02-02": "👹 節分", "2025-02-14": "🍫 バレンタイン", "2025-03-03": "🎎 ひな祭り", "2025-03-14": "🍪 ホワイトデー",
-  "2025-07-07": "🎋 七夕", "2025-10-31": "🎃 ハロウィン", "2025-12-24": "🎄 クリスマスイブ", "2025-12-25": "🎅 クリスマス",
-  "2025-12-31": "🔔 大晦日",
-  // 2026
-  "2026-02-03": "👹 節分", "2026-02-14": "🍫 バレンタイン", "2026-03-03": "🎎 ひな祭り", "2026-03-14": "🍪 ホワイトデー",
-  "2026-07-07": "🎋 七夕", "2026-10-31": "🎃 ハロウィン", "2026-12-24": "🎄 クリスマスイブ", "2026-12-25": "🎅 クリスマス",
-  "2026-12-31": "🔔 大晦日",
-};
-
-// --- Weather Locations ---
-const LOCATIONS = [
-  { name: '札幌', lat: 43.0667, lon: 141.3500 },
-  { name: '仙台', lat: 38.2682, lon: 140.8694 },
-  { name: '東京', lat: 35.6895, lon: 139.6917 },
-  { name: '名古屋', lat: 35.1815, lon: 136.9066 },
-  { name: '大阪', lat: 34.6937, lon: 135.5023 },
-  { name: '広島', lat: 34.3853, lon: 132.4553 },
-  { name: '福岡', lat: 33.5904, lon: 130.4017 },
-  { name: '那覇', lat: 26.2124, lon: 127.6809 },
-];
-
-const App = () => {
-  // --- State: Time ---
-  const [time, setTime] = useState(new Date());
-  const [showSeconds, setShowSeconds] = useState(false);
-
-  // --- State: Todos ---
-  const [todos, setTodos] = useState(() => {
-    const saved = localStorage.getItem('dashboard_todos');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, text: 'メールチェックをする', completed: false },
-      { id: 2, text: '水を飲む', completed: false },
-    ];
-  });
-  const [inputValue, setInputValue] = useState('');
-
-  // --- State: Timer (Pomodoro) ---
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [initialDuration, setInitialDuration] = useState(25 * 60); // Default 25 min
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [isTimerSettingsOpen, setIsTimerSettingsOpen] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState(25);
-  const [isMuted, setIsMuted] = useState(false);
-  const timerRef = useRef(null);
-
-  // --- State: Breathing ---
-  // const [breathingState, setBreathingState] = useState('Inhale'); // Inhale, Hold, Exhale
-  // const [isBreathingActive, setIsBreathingActive] = useState(false);
-
-  // --- State: Calendar ---
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  // --- State: Weather ---
-  const [weather, setWeather] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(LOCATIONS[2]); // Default Tokyo
-  const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
-
-  // --- State: New Year Celebration ---
-  const [isNewYear, setIsNewYear] = useState(false);
-  const [balloons, setBalloons] = useState([]);
-  const canvasRef = useRef(null);
-
-  // --- Effects ---
-
-  // Clock
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setTime(now);
-
-      // Check for New Year (Jan 1st, 00:00:00)
-      if (
-        now.getMonth() === 0 && // January (0-indexed)
-        now.getDate() === 1 &&
-        now.getHours() === 0 &&
-        now.getMinutes() === 0 &&
-        now.getSeconds() === 0
-      ) {
-        triggerNewYearCelebration();
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Save Todos
-  useEffect(() => {
-    localStorage.setItem('dashboard_todos', JSON.stringify(todos));
-  }, [todos]);
-
-  // Timer Sound Logic
-  const playTimerFinishedSound = () => {
-    if (isMuted) return;
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Daily Dashboard</title>
     
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      // Play a simple "ding" sequence (C5 -> E5 -> G5)
-      const now = ctx.currentTime;
-      
-      // Note 1
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-      osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-      
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-      
-      osc.start(now);
-      osc.stop(now + 1.0);
-    } catch (e) {
-      console.error("Audio playback failed", e);
-    }
-  };
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (for JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  // Timer Logic
-  useEffect(() => {
-    if (isTimerRunning && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isTimerRunning) { // Add isTimerRunning check to prevent double execution
-      setIsTimerRunning(false);
-      playTimerFinishedSound();
-    }
-    return () => clearInterval(timerRef.current);
-  }, [isTimerRunning, timeLeft, isMuted]);
-
-  // Weather Logic
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${selectedLocation.lat}&longitude=${selectedLocation.lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`
-        );
-        const data = await response.json();
-        setWeather(data);
-      } catch (error) {
-        console.error("Failed to fetch weather:", error);
-      }
-    };
-    fetchWeather();
-  }, [selectedLocation]);
-
-  // Fireworks Animation Effect
-  useEffect(() => {
-    if (!isNewYear || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let particles = [];
-    let rockets = [];
-
-    // Resize canvas
-    const resize = () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', resize);
-    resize();
-
-    // Classes for Fireworks
-    class Rocket {
-        constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = canvas.height;
-            this.vx = (Math.random() - 0.5) * 4;
-            this.vy = -(Math.random() * 5 + 10);
-            this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
-            this.explodeHeight = Math.random() * (canvas.height * 0.5);
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += 0.15; // Gravity
-        }
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-        }
-    }
-
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 5 + 2;
-            this.vx = Math.cos(angle) * speed;
-            this.vy = Math.sin(angle) * speed;
-            this.color = color;
-            this.alpha = 1;
-            this.decay = Math.random() * 0.015 + 0.01;
-            this.gravity = 0.1;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += this.gravity;
-            this.alpha -= this.decay;
-            this.vx *= 0.96; // Friction
-            this.vy *= 0.96;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    const loop = () => {
-        // Transparent clear for trails? No, keeping it clean for overlay readability
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Randomly launch rockets
-        if (Math.random() < 0.05) {
-            rockets.push(new Rocket());
-        }
-
-        // Update Rockets
-        for (let i = rockets.length - 1; i >= 0; i--) {
-            rockets[i].update();
-            rockets[i].draw();
-            // Explode?
-            if (rockets[i].vy >= 0 || rockets[i].y <= rockets[i].explodeHeight) {
-                // Boom!
-                for (let j = 0; j < 50; j++) {
-                    particles.push(new Particle(rockets[i].x, rockets[i].y, rockets[i].color));
-                }
-                rockets.splice(i, 1);
-            }
-        }
-
-        // Update Particles
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            particles[i].draw();
-            if (particles[i].alpha <= 0) {
-                particles.splice(i, 1);
-            }
-        }
-
-        animationFrameId = requestAnimationFrame(loop);
-    };
-
-    loop();
-
-    return () => {
-        window.removeEventListener('resize', resize);
-        cancelAnimationFrame(animationFrameId);
-    };
-  }, [isNewYear]);
-
-
-  // --- Handlers ---
-
-  // Todo Handlers
-  const addTodo = (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-    setTodos([...todos, { id: Date.now(), text: inputValue, completed: false }]);
-    setInputValue('');
-  };
-
-  const toggleTodo = (id) => {
-    setTodos(todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-  };
-
-  const deleteTodo = (id) => {
-    setTodos(todos.filter(t => t.id !== id));
-  };
-
-  // Timer Handlers
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
-  
-  const resetTimer = () => {
-    setIsTimerRunning(false);
-    setTimeLeft(initialDuration);
-  };
-
-  const openTimerSettings = () => {
-    setIsTimerRunning(false); // Pause if running
-    setCustomMinutes(Math.floor(initialDuration / 60));
-    setIsTimerSettingsOpen(true);
-  };
-
-  const saveTimerSettings = () => {
-    const newDuration = customMinutes * 60;
-    setInitialDuration(newDuration);
-    setTimeLeft(newDuration);
-    setIsTimerSettingsOpen(false);
-  };
-
-  const setPresetTime = (mins) => {
-    setCustomMinutes(mins);
-  };
-
-  // Weather Icon Helper
-  const getWeatherIcon = (code) => {
-    if (code === 0) return <Sun size={32} className="text-orange-500 animate-spin-slow" />;
-    if ([1, 2, 3].includes(code)) return <Cloud size={32} className="text-slate-400" />;
-    if ([45, 48].includes(code)) return <Wind size={32} className="text-slate-400" />;
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return <CloudRain size={32} className="text-blue-500" />;
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow size={32} className="text-cyan-300" />;
-    if ([95, 96, 99].includes(code)) return <CloudLightning size={32} className="text-purple-500" />;
-    return <Sun size={32} className="text-orange-500" />;
-  };
-
-  const getWeatherDescription = (code) => {
-    if (code === 0) return '快晴';
-    if ([1, 2, 3].includes(code)) return '曇り';
-    if ([45, 48].includes(code)) return '霧';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '雨';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return '雪';
-    if ([95, 96, 99].includes(code)) return '雷雨';
-    return '晴れ';
-  };
-
-  // Calendar Handlers & Logic
-  const daysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  const goToToday = () => setCurrentDate(new Date());
-
-  const getHolidayName = (year, month, day) => {
-    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return HOLIDAYS[key];
-  };
-
-  const getEventName = (year, month, day) => {
-    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return EVENTS[key];
-  };
-
-  const getCalendarDays = () => {
-    const days = [];
-    const totalDays = daysInMonth(currentDate);
-    const startDay = firstDayOfMonth(currentDate);
-    const today = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-
-    // Padding for start of month
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-9"></div>);
-    }
-
-    // Days
-    for (let i = 1; i <= totalDays; i++) {
-      const isToday = 
-        today.getDate() === i && 
-        today.getMonth() === currentMonth && 
-        today.getFullYear() === currentYear;
-      
-      const holidayName = getHolidayName(currentYear, currentMonth, i);
-      const eventName = getEventName(currentYear, currentMonth, i);
-      const label = holidayName || eventName;
-
-      const dayOfWeek = new Date(currentYear, currentMonth, i).getDay();
-      const isSunday = dayOfWeek === 0;
-      const isSaturday = dayOfWeek === 6;
-
-      let textColorClass = 'text-slate-700';
-      let dotColorClass = '';
-
-      if (holidayName) {
-        textColorClass = 'text-rose-500 font-bold';
-        dotColorClass = 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]';
-      } else if (isSunday) {
-        textColorClass = 'text-rose-500 font-semibold';
-      } else if (isSaturday) {
-        textColorClass = 'text-blue-500 font-semibold';
-      }
-      
-      if (eventName && !holidayName) {
-        if (!isSunday && !isSaturday) {
-             textColorClass = 'text-amber-600 font-medium';
-        }
-        dotColorClass = 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]';
-      }
-
-      days.push(
-        <div key={i} className="h-9 flex items-center justify-center relative group cursor-pointer transition-transform hover:scale-110" title={label || ''}>
-          <div className={`w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm transition-all relative duration-300
-            ${isToday 
-              ? 'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-lg shadow-rose-300 font-bold scale-110 ring-2 ring-white' 
-              : `${textColorClass} group-hover:bg-white/80 group-hover:shadow-md`
-            }
-          `}>
-            {i}
-            {label && !isToday && (
-               <div className={`absolute -bottom-1 w-1.5 h-1.5 rounded-full ${dotColorClass || 'bg-slate-300'}`}></div>
-            )}
-          </div>
-          {/* Tooltip for Holiday/Event */}
-          {label && (
-             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-800/90 backdrop-blur-sm text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-20 shadow-xl transform translate-y-2 group-hover:translate-y-0 border border-white/10">
-               {label}
-             </div>
-          )}
-        </div>
-      );
-    }
-    return days;
-  };
-
-  const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-
-  // New Year Logic
-  const triggerNewYearCelebration = () => {
-    setIsNewYear(true);
-    // Generate balloons with more random properties
-    const newBalloons = Array.from({ length: 30 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 90 + 5, // 5-95%
-      delay: Math.random() * 5, // 0-5s stagger
-      duration: 8 + Math.random() * 6, // 8-14s float time
-      color: ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fd79a8', '#fab1a0'][Math.floor(Math.random() * 7)],
-      scale: 0.7 + Math.random() * 0.6, // 0.7 - 1.3 size
-      swayDuration: 2 + Math.random() * 2 // 2-4s sway
-    }));
-    setBalloons(newBalloons);
-
-    // Auto close after 12 seconds
-    setTimeout(() => {
-      setIsNewYear(false);
-      setBalloons([]);
-    }, 15000); // Extended slightly to let balloons finish
-  };
-
-  // Greeting
-  const getGreeting = () => {
-    const hour = time.getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Hello!';
-    return 'Good Evening';
-  };
-
-  // Helper for Display Year
-  // If current month is December (11), show next year. Otherwise show current year.
-  const displayYear = time.getMonth() === 11 ? time.getFullYear() + 1 : time.getFullYear();
-
-  return (
-    <div className="min-h-screen font-sans p-4 md:p-8 relative overflow-hidden text-slate-800 selection:bg-rose-200 selection:text-rose-900">
-      
-      {/* --- Animated Background Blobs --- */}
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 -z-20"></div>
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-      <div className="fixed top-[0%] right-[-10%] w-[35%] h-[35%] bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
-      <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-4000"></div>
-
-      {/* --- New Year Overlay --- */}
-      {isNewYear && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-none">
-          
-          {/* Canvas for Realistic Fireworks */}
-          <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
-
-          <div className="relative z-50 text-center animate-bounce-slow">
-            <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-red-500 to-pink-500 drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] pb-4">
-              Happy New Year!!
-            </h1>
-            <p className="text-white text-xl md:text-3xl font-bold mt-4 drop-shadow-md">
-              {displayYear}年もよろしくね！
-            </p>
-          </div>
-          
-          {/* Realistic SVG Balloons */}
-          {balloons.map((balloon) => (
-            <div
-              key={balloon.id}
-              className="absolute"
-              style={{
-                left: `${balloon.left}%`,
-                bottom: '-150px',
-                color: balloon.color,
-                animation: `floatUp ${balloon.duration}s ease-in ${balloon.delay}s forwards`,
-                zIndex: 40
-              }}
-            >
-              <div style={{ 
-                animation: `sway ${balloon.swayDuration}s ease-in-out infinite alternate`, 
-                transformOrigin: 'bottom center',
-                transform: `scale(${balloon.scale})`
-              }}>
-                <svg width="60" height="85" viewBox="0 0 50 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))'}}>
-                  {/* String */}
-                  <path d="M25 58 C 25 58 20 65 25 70" stroke="white" strokeWidth="1.5" opacity="0.8"/>
-                  {/* Balloon Body */}
-                  <path d="M25 0C11.1929 0 0 11.1929 0 25C0 38.8071 11.1929 50 25 50C38.8071 50 50 38.8071 50 25C50 11.1929 38.8071 0 25 0Z" fill="currentColor"/>
-                  {/* Highlight/Reflection */}
-                  <ellipse cx="15" cy="15" rx="5" ry="8" transform="rotate(-45 15 15)" fill="white" fillOpacity="0.3"/>
-                  {/* Knot */}
-                  <path d="M22 49L25 54L28 49H22Z" fill="currentColor"/>
-                </svg>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="max-w-6xl mx-auto space-y-6 relative z-10">
-        
-        {/* Header Section with Glassmorphism */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.07)] border border-white/50 transition-transform hover:scale-[1.01] duration-500">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="text-yellow-500 animate-pulse" size={28} />
-              <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-rose-500 pb-2">
-                {getGreeting()}
-              </h1>
-            </div>
-            <p className="text-slate-600 font-medium ml-1">
-              今日は <span className="text-indigo-600 font-bold">{time.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</span> ({time.toLocaleDateString('ja-JP', { weekday: 'short' })})
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0 text-right bg-white/40 px-6 py-3 rounded-3xl shadow-inner border border-white/60 flex flex-col items-end gap-1">
-            <div className="text-5xl lg:text-6xl font-mono font-light text-slate-700 tracking-tighter" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.05)' }}>
-              {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: showSeconds ? '2-digit' : undefined })}
-            </div>
-             <button
-              onClick={() => setShowSeconds(!showSeconds)}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors bg-white/50 px-3 py-1 rounded-full border border-white/50 hover:bg-white cursor-pointer"
-            >
-              {showSeconds ? <ToggleRight size={16} className="text-indigo-500" /> : <ToggleLeft size={16} />}
-              <span>秒を表示</span>
-            </button>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Col 1: Todo Widget */}
-          <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex flex-col h-[38rem] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-rose-400 to-orange-400 rounded-2xl text-white shadow-lg shadow-rose-200">
-                <ListTodo size={24} />
-              </div>
-              <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-orange-600">タスクリスト</h2>
-            </div>
-
-            <form onSubmit={addTodo} className="relative mb-6 group">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="新しいタスクを入力..."
-                className="w-full pl-5 pr-12 py-4 rounded-2xl bg-white/70 border-2 border-transparent focus:border-rose-300 focus:bg-white outline-none transition-all shadow-sm group-hover:shadow-md text-slate-700 placeholder:text-slate-400"
-              />
-              <button 
-                type="submit"
-                className="absolute right-2 top-2 bottom-2 aspect-square bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md flex items-center justify-center"
-              >
-                <Plus size={20} />
-              </button>
-            </form>
-
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-              {todos.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-2">
-                    <Sparkles size={24} className="text-slate-300" />
-                  </div>
-                  <p className="text-sm font-medium">タスクはありません ✨</p>
-                </div>
-              ) : (
-                todos.map(todo => (
-                  <div 
-                    key={todo.id} 
-                    className={`group flex items-center justify-between p-4 rounded-2xl transition-all duration-300 border ${
-                      todo.completed 
-                      ? 'bg-slate-50/50 border-transparent text-slate-400' 
-                      : 'bg-white/80 border-white shadow-sm hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <button 
-                        onClick={() => toggleTodo(todo.id)}
-                        className={`flex-shrink-0 transition-all duration-300 rounded-full p-1 ${
-                          todo.completed 
-                          ? 'text-rose-300 bg-rose-50' 
-                          : 'text-slate-300 hover:text-rose-500 hover:bg-rose-50'
-                        }`}
-                      >
-                        <CheckCircle2 size={22} className={todo.completed ? "fill-rose-400 text-white" : ""} />
-                      </button>
-                      <span className={`truncate font-medium transition-all ${todo.completed ? 'line-through decoration-rose-300 decoration-2' : 'text-slate-700'}`}>
-                        {todo.text}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => deleteTodo(todo.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Col 2: Calendar Widget */}
-          <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex flex-col h-[38rem] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl text-white shadow-lg shadow-blue-200">
-                  <CalendarIcon size={24} />
-                </div>
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">カレンダー</h2>
-              </div>
-              <button onClick={goToToday} className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors border border-blue-100">
-                Today
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between mb-4 bg-white/50 p-2 rounded-2xl border border-white/60">
-              <button onClick={prevMonth} className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-blue-600 transition-all shadow-sm hover:shadow">
-                <ChevronLeft size={20} />
-              </button>
-              <h3 className="text-lg font-bold text-slate-700 tracking-wide">
-                {currentDate.getFullYear()} <span className="text-sm font-normal text-slate-500">/</span> {currentDate.getMonth() + 1}
-              </h3>
-              <button onClick={nextMonth} className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-blue-600 transition-all shadow-sm hover:shadow">
-                <ChevronRight size={20} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 mb-2">
-              {weekDays.map((day, index) => (
-                <div key={day} className={`text-center text-xs font-bold py-2 ${index === 0 ? 'text-rose-500' : index === 6 ? 'text-blue-500' : 'text-slate-400'}`}>
-                  {day}
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex-1">
-              <div className="grid grid-cols-7 gap-y-1">
-                {getCalendarDays()}
-              </div>
-            </div>
-          </div>
-
-          {/* Col 3: Stack (Timer & Weather) - Removed Relax */}
-          <div className="space-y-6 flex flex-col h-[38rem]">
-            
-            {/* Focus Timer Widget (Top) */}
-            <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 relative overflow-hidden flex flex-col justify-between group transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500 h-80">
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                    <Clock size={24} />
-                  </div>
-                  <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Timer</h2>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setIsMuted(!isMuted)} 
-                    className="p-2 bg-white/50 rounded-xl hover:bg-white hover:text-indigo-600 transition-colors text-slate-500 border border-white/50"
-                    title={isMuted ? "音声をオン" : "音声をオフ"}
-                  >
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                  </button>
-                  <button 
-                    onClick={openTimerSettings} 
-                    className="p-2 bg-white/50 rounded-xl hover:bg-white hover:text-indigo-600 transition-colors text-slate-500 border border-white/50"
-                    title="時間設定"
-                  >
-                    <Settings size={20} />
-                  </button>
-                </div>
-              </div>
-              
-              {isTimerSettingsOpen ? (
-                <div className="flex flex-col items-center justify-center relative z-10 flex-1 w-full gap-2">
-                  <div className="flex gap-2 w-full justify-center">
-                    {[5, 15, 25].map(min => (
-                      <button 
-                        key={min}
-                        onClick={() => setPresetTime(min)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 transition-all ${
-                          customMinutes === min 
-                          ? 'bg-indigo-100 border-indigo-300 text-indigo-700' 
-                          : 'bg-white/50 border-transparent text-slate-600 hover:bg-white'
-                        }`}
-                      >
-                        {min}分
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="number" 
-                      min="1" 
-                      max="180"
-                      value={customMinutes}
-                      onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 text-center text-3xl font-bold bg-white/70 rounded-xl py-2 border-2 border-transparent focus:border-indigo-400 outline-none text-slate-700"
-                    />
-                    <span className="font-bold text-slate-500">分</span>
-                  </div>
-                  <div className="flex flex-col w-full gap-2">
-                    <button 
-                      onClick={saveTimerSettings}
-                      className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-2 rounded-xl shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all"
-                    >
-                      決定
-                    </button>
-                    <button 
-                      onClick={triggerNewYearCelebration}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white font-bold py-2 rounded-xl shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm"
-                    >
-                      <PartyPopper size={16} />
-                      年越しテスト
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center relative z-10 py-2 flex-1">
-                  <div className="text-6xl font-mono font-bold text-slate-700 tracking-wider mb-4 drop-shadow-sm">
-                    {formatTime(timeLeft)}
-                  </div>
-                  <div className="flex gap-4 w-full justify-center px-4">
-                    <button 
-                      onClick={toggleTimer}
-                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all flex-1 shadow-lg transform active:scale-95 ${
-                        isTimerRunning 
-                        ? 'bg-amber-100 text-amber-600 hover:bg-amber-200 border-2 border-amber-200' 
-                        : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:shadow-indigo-300 hover:-translate-y-1 border-2 border-transparent'
-                      }`}
-                    >
-                      {isTimerRunning ? <Pause size={20} /> : <Play size={20} />}
-                      {isTimerRunning ? 'PAUSE' : 'START'}
-                    </button>
-                    <button 
-                      onClick={resetTimer}
-                      className="p-3 rounded-2xl bg-white border-2 border-slate-100 text-slate-400 hover:text-indigo-500 hover:border-indigo-100 hover:bg-indigo-50 transition-all shadow-sm hover:rotate-180 duration-500"
-                    >
-                      <RotateCcw size={20} />
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div 
-                className="absolute bottom-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
-                style={{ width: `${(timeLeft / initialDuration) * 100}%` }}
-              ></div>
-            </div>
-
-            {/* Weather Widget (Bottom - Expanded) */}
-            <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex-1 flex flex-col justify-between group transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
-              <div className="flex justify-between items-start relative z-10">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
-                    <Cloud size={20} />
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-700">Weather</h2>
-                </div>
-                <div className="relative">
-                  <button 
-                    onClick={() => setIsLocationSelectorOpen(!isLocationSelectorOpen)}
-                    className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-white/50 hover:bg-white px-2 py-1 rounded-lg border border-white/50 transition-all"
-                  >
-                    <MapPin size={12} />
-                    {selectedLocation.name}
-                  </button>
-                  {isLocationSelectorOpen && (
-                    <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-md rounded-xl shadow-xl border border-slate-100 p-2 z-20 w-32 grid gap-1">
-                      {LOCATIONS.map(loc => (
-                        <button
-                          key={loc.name}
-                          onClick={() => {
-                            setSelectedLocation(loc);
-                            setIsLocationSelectorOpen(false);
-                          }}
-                          className={`text-left text-xs font-medium px-2 py-1.5 rounded-lg transition-colors ${selectedLocation.name === loc.name ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}
-                        >
-                          {loc.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {weather ? (
-                <div className="flex flex-col items-center justify-center flex-1 gap-4">
-                  <div className="scale-[2.0]">{getWeatherIcon(weather.current_weather.weathercode)}</div>
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-6xl font-bold text-slate-800">{Math.round(weather.current_weather.temperature)}</span>
-                      <span className="text-2xl font-medium text-slate-500">°C</span>
-                    </div>
-                    <span className="text-xl font-bold text-slate-500 mt-1">{getWeatherDescription(weather.current_weather.weathercode)}</span>
-                  </div>
-                  <div className="flex gap-6 mt-2 bg-white/40 px-6 py-2 rounded-xl border border-white/50">
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs font-bold text-slate-400">High</span>
-                      <span className="text-lg font-bold text-red-400">{Math.round(weather.daily.temperature_2m_max[0])}°</span>
-                    </div>
-                    <div className="w-px bg-slate-200"></div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs font-bold text-slate-400">Low</span>
-                      <span className="text-lg font-bold text-blue-400">{Math.round(weather.daily.temperature_2m_min[0])}°</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-slate-400">Loading Weather...</div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <style>{`
+    <style>
         /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+            width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+            background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(203, 213, 225, 0.5);
-          border-radius: 20px;
+            background-color: rgba(203, 213, 225, 0.5);
+            border-radius: 20px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(244, 63, 94, 0.5);
+            background-color: rgba(244, 63, 94, 0.5);
         }
 
         /* Animation Keyframes */
         @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
         }
         .animate-blob {
-          animation: blob 10s infinite;
+            animation: blob 10s infinite;
         }
         .animation-delay-2000 {
-          animation-delay: 2s;
+            animation-delay: 2s;
         }
         .animation-delay-4000 {
-          animation-delay: 4s;
+            animation-delay: 4s;
         }
         .animate-spin-slow {
-          animation: spin 8s linear infinite;
+            animation: spin 8s linear infinite;
         }
 
         /* Balloon Animations */
         @keyframes floatUp {
-          0% { transform: translateY(0) translateX(0); opacity: 0; }
-          10% { opacity: 1; }
-          100% { transform: translateY(-120vh) translateX(20px); opacity: 0.9; }
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(-120vh) translateX(20px); opacity: 0.9; }
         }
         
         @keyframes sway {
-          0% { transform: rotate(-5deg) translateX(-5px); }
-          100% { transform: rotate(5deg) translateX(5px); }
+            0% { transform: rotate(-5deg) translateX(-5px); }
+            100% { transform: rotate(5deg) translateX(5px); }
         }
         
         .animate-bounce-slow {
-           animation: bounce 3s infinite;
+            animation: bounce 3s infinite;
         }
         .animate-fade-in {
-           animation: fadeIn 0.5s ease-out;
+            animation: fadeIn 0.5s ease-out;
         }
         @keyframes fadeIn {
-           from { opacity: 0; }
-           to { opacity: 1; }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-      `}</style>
-    </div>
-  );
-};
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
 
-export default App;
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons (Implemented as components to replace lucide-react) ---
+        const IconBase = ({ children, size = 24, className = "", ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className} 
+                {...props}
+            >
+                {children}
+            </svg>
+        );
+
+        const CheckCircle2 = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
+        const Plus = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
+        const Trash2 = (props) => <IconBase {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
+        const Play = (props) => <IconBase {...props}><polygon points="5 3 19 12 5 21 5 3"/></IconBase>;
+        const Pause = (props) => <IconBase {...props}><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></IconBase>;
+        const RotateCcw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
+        const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const ListTodo = (props) => <IconBase {...props}><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><path d="m15 18-6-6 6-6"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>;
+        const CalendarIcon = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
+        const ToggleLeft = (props) => <IconBase {...props}><rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="8" cy="12" r="2"/></IconBase>;
+        const ToggleRight = (props) => <IconBase {...props}><rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="16" cy="12" r="2"/></IconBase>;
+        const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const PartyPopper = (props) => <IconBase {...props}><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 1.96L17 7"/><path d="m11 13-2.33.77a3 3 0 0 0-1.9 1.9L6 18"/><path d="m11 13 8-8"/><path d="M16 16c1.3 0 3-1.3 3-4s-3-4-3-4"/></IconBase>;
+        const Sun = (props) => <IconBase {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></IconBase>;
+        const Cloud = (props) => <IconBase {...props}><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.6c-2.3 0-4.3-1.7-4.6-4-.4-2.7 1.7-5 4.3-5 2.1 0 3.9 1.4 4.5 3.3a4.5 4.5 0 0 1 2.3 7.7"/></IconBase>;
+        const CloudRain = (props) => <IconBase {...props}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></IconBase>;
+        const CloudSnow = (props) => <IconBase {...props}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M8 15h.01"/><path d="M8 19h.01"/><path d="M12 17h.01"/><path d="M12 21h.01"/><path d="M16 15h.01"/><path d="M16 19h.01"/></IconBase>;
+        const CloudLightning = (props) => <IconBase {...props}><path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/></IconBase>;
+        const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const Volume2 = (props) => <IconBase {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></IconBase>;
+        const VolumeX = (props) => <IconBase {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" x2="17" y1="9" y2="15"/><line x1="17" x2="23" y1="9" y2="15"/></IconBase>;
+        const Wind = (props) => <IconBase {...props}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></IconBase>;
+
+        // --- Holidays Data (2024-2026) ---
+        const HOLIDAYS = {
+            "2024-01-01": "元日", "2024-01-08": "成人の日", "2024-02-11": "建国記念の日", "2024-02-12": "振替休日",
+            "2024-02-23": "天皇誕生日", "2024-03-20": "春分の日", "2024-04-29": "昭和の日", "2024-05-03": "憲法記念日",
+            "2024-05-04": "みどりの日", "2024-05-05": "こどもの日", "2024-05-06": "振替休日", "2024-07-15": "海の日",
+            "2024-08-11": "山の日", "2024-08-12": "振替休日", "2024-09-16": "敬老の日", "2024-09-22": "秋分の日",
+            "2024-09-23": "振替休日", "2024-10-14": "スポーツの日", "2024-11-03": "文化の日", "2024-11-04": "振替休日",
+            "2024-11-23": "勤労感謝の日",
+            "2025-01-01": "元日", "2025-01-13": "成人の日", "2025-02-11": "建国記念の日", "2025-02-23": "天皇誕生日",
+            "2025-02-24": "振替休日", "2025-03-20": "春分の日", "2025-04-29": "昭和の日", "2025-05-03": "憲法記念日",
+            "2025-05-04": "みどりの日", "2025-05-05": "こどもの日", "2025-05-06": "振替休日", "2025-07-21": "海の日",
+            "2025-08-11": "山の日", "2025-09-15": "敬老の日", "2025-09-23": "秋分の日", "2025-10-13": "スポーツの日",
+            "2025-11-03": "文化の日", "2025-11-23": "勤労感謝の日", "2025-11-24": "振替休日",
+            "2026-01-01": "元日", "2026-01-12": "成人の日", "2026-02-11": "建国記念の日", "2026-02-23": "天皇誕生日",
+            "2026-03-20": "春分の日", "2026-04-29": "昭和の日", "2026-05-03": "憲法記念日", "2026-05-04": "みどりの日",
+            "2026-05-05": "こどもの日", "2026-05-06": "振替休日", "2026-07-20": "海の日", "2026-08-11": "山の日",
+            "2026-09-21": "敬老の日", "2026-09-22": "国民の休日", "2026-09-23": "秋分の日", "2026-10-12": "スポーツの日",
+            "2026-11-03": "文化の日", "2026-11-23": "勤労感謝の日"
+        };
+
+        // --- Events Data (2024-2026) ---
+        const EVENTS = {
+            "2024-02-03": "👹 節分", "2024-02-14": "🍫 バレンタイン", "2024-03-03": "🎎 ひな祭り", "2024-03-14": "🍪 ホワイトデー",
+            "2024-07-07": "🎋 七夕", "2024-10-31": "🎃 ハロウィン", "2024-12-24": "🎄 クリスマスイブ", "2024-12-25": "🎅 クリスマス",
+            "2024-12-31": "🔔 大晦日",
+            "2025-02-02": "👹 節分", "2025-02-14": "🍫 バレンタイン", "2025-03-03": "🎎 ひな祭り", "2025-03-14": "🍪 ホワイトデー",
+            "2025-07-07": "🎋 七夕", "2025-10-31": "🎃 ハロウィン", "2025-12-24": "🎄 クリスマスイブ", "2025-12-25": "🎅 クリスマス",
+            "2025-12-31": "🔔 大晦日",
+            "2026-02-03": "👹 節分", "2026-02-14": "🍫 バレンタイン", "2026-03-03": "🎎 ひな祭り", "2026-03-14": "🍪 ホワイトデー",
+            "2026-07-07": "🎋 七夕", "2026-10-31": "🎃 ハロウィン", "2026-12-24": "🎄 クリスマスイブ", "2026-12-25": "🎅 クリスマス",
+            "2026-12-31": "🔔 大晦日",
+        };
+
+        // --- Weather Locations ---
+        const LOCATIONS = [
+            { name: '札幌', lat: 43.0667, lon: 141.3500 },
+            { name: '仙台', lat: 38.2682, lon: 140.8694 },
+            { name: '東京', lat: 35.6895, lon: 139.6917 },
+            { name: '名古屋', lat: 35.1815, lon: 136.9066 },
+            { name: '大阪', lat: 34.6937, lon: 135.5023 },
+            { name: '広島', lat: 34.3853, lon: 132.4553 },
+            { name: '福岡', lat: 33.5904, lon: 130.4017 },
+            { name: '那覇', lat: 26.2124, lon: 127.6809 },
+        ];
+
+        const App = () => {
+            // --- State: Time ---
+            const [time, setTime] = useState(new Date());
+            const [showSeconds, setShowSeconds] = useState(false);
+
+            // --- State: Todos ---
+            const [todos, setTodos] = useState(() => {
+                const saved = localStorage.getItem('dashboard_todos');
+                return saved ? JSON.parse(saved) : [
+                    { id: 1, text: 'メールチェックをする', completed: false },
+                    { id: 2, text: '水を飲む', completed: false },
+                ];
+            });
+            const [inputValue, setInputValue] = useState('');
+
+            // --- State: Timer (Pomodoro) ---
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [initialDuration, setInitialDuration] = useState(25 * 60); 
+            const [isTimerRunning, setIsTimerRunning] = useState(false);
+            const [isTimerSettingsOpen, setIsTimerSettingsOpen] = useState(false);
+            const [customMinutes, setCustomMinutes] = useState(25);
+            const [isMuted, setIsMuted] = useState(false);
+            const timerRef = useRef(null);
+
+            // --- State: Breathing ---
+            const [breathingState, setBreathingState] = useState('Inhale');
+            const [isBreathingActive, setIsBreathingActive] = useState(false);
+
+            // --- State: Calendar ---
+            const [currentDate, setCurrentDate] = useState(new Date());
+
+            // --- State: Weather ---
+            const [weather, setWeather] = useState(null);
+            const [selectedLocation, setSelectedLocation] = useState(LOCATIONS[2]);
+            const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
+
+            // --- State: New Year Celebration ---
+            const [isNewYear, setIsNewYear] = useState(false);
+            const [balloons, setBalloons] = useState([]);
+            const canvasRef = useRef(null);
+
+            // --- Effects ---
+
+            // Clock
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    const now = new Date();
+                    setTime(now);
+
+                    if (
+                        now.getMonth() === 0 && 
+                        now.getDate() === 1 &&
+                        now.getHours() === 0 &&
+                        now.getMinutes() === 0 &&
+                        now.getSeconds() === 0
+                    ) {
+                        triggerNewYearCelebration();
+                    }
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Save Todos
+            useEffect(() => {
+                localStorage.setItem('dashboard_todos', JSON.stringify(todos));
+            }, [todos]);
+
+            // Timer Sound Logic
+            const playTimerFinishedSound = () => {
+                if (isMuted) return;
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+                    
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    const now = ctx.currentTime;
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                    
+                    osc.start(now);
+                    osc.stop(now + 1.0);
+                } catch (e) {
+                    console.error("Audio playback failed", e);
+                }
+            };
+
+            // Timer Logic
+            useEffect(() => {
+                if (isTimerRunning && timeLeft > 0) {
+                    timerRef.current = setInterval(() => {
+                        setTimeLeft((prev) => prev - 1);
+                    }, 1000);
+                } else if (timeLeft === 0 && isTimerRunning) { 
+                    setIsTimerRunning(false);
+                    playTimerFinishedSound();
+                }
+                return () => clearInterval(timerRef.current);
+            }, [isTimerRunning, timeLeft, isMuted]);
+
+            // Breathing Logic
+            useEffect(() => {
+                if (!isBreathingActive) {
+                    setBreathingState('深呼吸');
+                    return;
+                }
+                let timeouts = [];
+                const runCycle = () => {
+                    setBreathingState('吸って...');
+                    timeouts.push(setTimeout(() => setBreathingState('止めて...'), 4000));
+                    timeouts.push(setTimeout(() => setBreathingState('吐いて...'), 8000));
+                };
+                runCycle();
+                const interval = setInterval(runCycle, 12000);
+                return () => {
+                    clearInterval(interval);
+                    timeouts.forEach(clearTimeout);
+                };
+            }, [isBreathingActive]);
+
+            // Weather Logic
+            useEffect(() => {
+                const fetchWeather = async () => {
+                    try {
+                        const response = await fetch(
+                            `https://api.open-meteo.com/v1/forecast?latitude=${selectedLocation.lat}&longitude=${selectedLocation.lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`
+                        );
+                        const data = await response.json();
+                        setWeather(data);
+                    } catch (error) {
+                        console.error("Failed to fetch weather:", error);
+                    }
+                };
+                fetchWeather();
+            }, [selectedLocation]);
+
+            // Fireworks Animation Effect
+            useEffect(() => {
+                if (!isNewYear || !canvasRef.current) return;
+
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+                let particles = [];
+                let rockets = [];
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                class Rocket {
+                    constructor() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height;
+                        this.vx = (Math.random() - 0.5) * 4;
+                        this.vy = -(Math.random() * 5 + 10);
+                        this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                        this.explodeHeight = Math.random() * (canvas.height * 0.5);
+                    }
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        this.vy += 0.15; // Gravity
+                    }
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color;
+                        ctx.fill();
+                    }
+                }
+
+                class Particle {
+                    constructor(x, y, color) {
+                        this.x = x;
+                        this.y = y;
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = Math.random() * 5 + 2;
+                        this.vx = Math.cos(angle) * speed;
+                        this.vy = Math.sin(angle) * speed;
+                        this.color = color;
+                        this.alpha = 1;
+                        this.decay = Math.random() * 0.015 + 0.01;
+                        this.gravity = 0.1;
+                    }
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        this.vy += this.gravity;
+                        this.alpha -= this.decay;
+                        this.vx *= 0.96;
+                        this.vy *= 0.96;
+                    }
+                    draw() {
+                        ctx.save();
+                        ctx.globalAlpha = this.alpha;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+
+                const loop = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (Math.random() < 0.05) {
+                        rockets.push(new Rocket());
+                    }
+                    for (let i = rockets.length - 1; i >= 0; i--) {
+                        rockets[i].update();
+                        rockets[i].draw();
+                        if (rockets[i].vy >= 0 || rockets[i].y <= rockets[i].explodeHeight) {
+                            for (let j = 0; j < 50; j++) {
+                                particles.push(new Particle(rockets[i].x, rockets[i].y, rockets[i].color));
+                            }
+                            rockets.splice(i, 1);
+                        }
+                    }
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        particles[i].update();
+                        particles[i].draw();
+                        if (particles[i].alpha <= 0) {
+                            particles.splice(i, 1);
+                        }
+                    }
+                    animationFrameId = requestAnimationFrame(loop);
+                };
+                loop();
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationFrameId);
+                };
+            }, [isNewYear]);
+
+            // --- Handlers ---
+            const addTodo = (e) => {
+                e.preventDefault();
+                if (!inputValue.trim()) return;
+                setTodos([...todos, { id: Date.now(), text: inputValue, completed: false }]);
+                setInputValue('');
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(t => t.id !== id));
+            };
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
+            const resetTimer = () => {
+                setIsTimerRunning(false);
+                setTimeLeft(initialDuration);
+            };
+
+            const openTimerSettings = () => {
+                setIsTimerRunning(false);
+                setCustomMinutes(Math.floor(initialDuration / 60));
+                setIsTimerSettingsOpen(true);
+            };
+
+            const saveTimerSettings = () => {
+                const newDuration = customMinutes * 60;
+                setInitialDuration(newDuration);
+                setTimeLeft(newDuration);
+                setIsTimerSettingsOpen(false);
+            };
+
+            const setPresetTime = (mins) => {
+                setCustomMinutes(mins);
+            };
+
+            const toggleBreathing = () => setIsBreathingActive(!isBreathingActive);
+
+            const getWeatherIcon = (code) => {
+                if (code === 0) return <Sun size={32} className="text-orange-500 animate-spin-slow" />;
+                if ([1, 2, 3].includes(code)) return <Cloud size={32} className="text-slate-400" />;
+                if ([45, 48].includes(code)) return <Wind size={32} className="text-slate-400" />;
+                if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return <CloudRain size={32} className="text-blue-500" />;
+                if ([71, 73, 75, 77, 85, 86].includes(code)) return <CloudSnow size={32} className="text-cyan-300" />;
+                if ([95, 96, 99].includes(code)) return <CloudLightning size={32} className="text-purple-500" />;
+                return <Sun size={32} className="text-orange-500" />;
+            };
+
+            const getWeatherDescription = (code) => {
+                if (code === 0) return '快晴';
+                if ([1, 2, 3].includes(code)) return '曇り';
+                if ([45, 48].includes(code)) return '霧';
+                if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '雨';
+                if ([71, 73, 75, 77, 85, 86].includes(code)) return '雪';
+                if ([95, 96, 99].includes(code)) return '雷雨';
+                return '晴れ';
+            };
+
+            const daysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            const firstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+            const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+            const goToToday = () => setCurrentDate(new Date());
+
+            const getHolidayName = (year, month, day) => {
+                const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                return HOLIDAYS[key];
+            };
+
+            const getEventName = (year, month, day) => {
+                const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                return EVENTS[key];
+            };
+
+            const getCalendarDays = () => {
+                const days = [];
+                const totalDays = daysInMonth(currentDate);
+                const startDay = firstDayOfMonth(currentDate);
+                const today = new Date();
+                const currentYear = currentDate.getFullYear();
+                const currentMonth = currentDate.getMonth();
+
+                for (let i = 0; i < startDay; i++) {
+                    days.push(<div key={`empty-${i}`} className="h-9"></div>);
+                }
+
+                for (let i = 1; i <= totalDays; i++) {
+                    const isToday = 
+                        today.getDate() === i && 
+                        today.getMonth() === currentMonth && 
+                        today.getFullYear() === currentYear;
+                    
+                    const holidayName = getHolidayName(currentYear, currentMonth, i);
+                    const eventName = getEventName(currentYear, currentMonth, i);
+                    const label = holidayName || eventName;
+
+                    const dayOfWeek = new Date(currentYear, currentMonth, i).getDay();
+                    const isSunday = dayOfWeek === 0;
+                    const isSaturday = dayOfWeek === 6;
+
+                    let textColorClass = 'text-slate-700';
+                    let dotColorClass = '';
+
+                    if (holidayName) {
+                        textColorClass = 'text-rose-500 font-bold';
+                        dotColorClass = 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]';
+                    } else if (isSunday) {
+                        textColorClass = 'text-rose-500 font-semibold';
+                    } else if (isSaturday) {
+                        textColorClass = 'text-blue-500 font-semibold';
+                    }
+                    
+                    if (eventName && !holidayName) {
+                        if (!isSunday && !isSaturday) {
+                            textColorClass = 'text-amber-600 font-medium';
+                        }
+                        dotColorClass = 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]';
+                    }
+
+                    days.push(
+                        <div key={i} className="h-9 flex items-center justify-center relative group cursor-pointer transition-transform hover:scale-110" title={label || ''}>
+                            <div className={`w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm transition-all relative duration-300
+                                ${isToday 
+                                ? 'bg-gradient-to-br from-rose-400 to-rose-600 text-white shadow-lg shadow-rose-300 font-bold scale-110 ring-2 ring-white' 
+                                : `${textColorClass} group-hover:bg-white/80 group-hover:shadow-md`
+                                }
+                            `}>
+                                {i}
+                                {label && !isToday && (
+                                    <div className={`absolute -bottom-1 w-1.5 h-1.5 rounded-full ${dotColorClass || 'bg-slate-300'}`}></div>
+                                )}
+                            </div>
+                            {label && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-800/90 backdrop-blur-sm text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-20 shadow-xl transform translate-y-2 group-hover:translate-y-0 border border-white/10">
+                                    {label}
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+                return days;
+            };
+
+            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+
+            const triggerNewYearCelebration = () => {
+                setIsNewYear(true);
+                const newBalloons = Array.from({ length: 30 }).map((_, i) => ({
+                    id: i,
+                    left: Math.random() * 90 + 5, 
+                    delay: Math.random() * 5, 
+                    duration: 8 + Math.random() * 6,
+                    color: ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fd79a8', '#fab1a0'][Math.floor(Math.random() * 7)],
+                    scale: 0.7 + Math.random() * 0.6,
+                    swayDuration: 2 + Math.random() * 2 
+                }));
+                setBalloons(newBalloons);
+                setTimeout(() => {
+                    setIsNewYear(false);
+                    setBalloons([]);
+                }, 15000); 
+            };
+
+            const getGreeting = () => {
+                const hour = time.getHours();
+                if (hour < 12) return 'Good Morning';
+                if (hour < 18) return 'Hello!';
+                return 'Good Evening';
+            };
+
+            const displayYear = time.getMonth() === 11 ? time.getFullYear() + 1 : time.getFullYear();
+
+            return (
+                <div className="min-h-screen font-sans p-4 md:p-8 relative overflow-hidden text-slate-800 selection:bg-rose-200 selection:text-rose-900">
+                    <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 -z-20"></div>
+                    <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+                    <div className="fixed top-[0%] right-[-10%] w-[35%] h-[35%] bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+                    <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-4000"></div>
+
+                    {isNewYear && (
+                        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-none">
+                            <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+                            <div className="relative z-50 text-center animate-bounce-slow">
+                                <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-red-500 to-pink-500 drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] pb-4">
+                                    Happy New Year!!
+                                </h1>
+                                <p className="text-white text-xl md:text-3xl font-bold mt-4 drop-shadow-md">
+                                    {displayYear}年もよろしくね！
+                                </p>
+                            </div>
+                            {balloons.map((balloon) => (
+                                <div
+                                    key={balloon.id}
+                                    className="absolute"
+                                    style={{
+                                        left: `${balloon.left}%`,
+                                        bottom: '-150px',
+                                        color: balloon.color,
+                                        animation: `floatUp ${balloon.duration}s ease-in ${balloon.delay}s forwards`,
+                                        zIndex: 40
+                                    }}
+                                >
+                                    <div style={{ 
+                                        animation: `sway ${balloon.swayDuration}s ease-in-out infinite alternate`, 
+                                        transformOrigin: 'bottom center',
+                                        transform: `scale(${balloon.scale})`
+                                    }}>
+                                        <svg width="60" height="85" viewBox="0 0 50 70" fill="none" xmlns="http://www.w3.org/2000/svg" style={{filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))'}}>
+                                            <path d="M25 58 C 25 58 20 65 25 70" stroke="white" strokeWidth="1.5" opacity="0.8"/>
+                                            <path d="M25 0C11.1929 0 0 11.1929 0 25C0 38.8071 11.1929 50 25 50C38.8071 50 50 38.8071 50 25C50 11.1929 38.8071 0 25 0Z" fill="currentColor"/>
+                                            <ellipse cx="15" cy="15" rx="5" ry="8" transform="rotate(-45 15 15)" fill="white" fillOpacity="0.3"/>
+                                            <path d="M22 49L25 54L28 49H22Z" fill="currentColor"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="max-w-6xl mx-auto space-y-6 relative z-10">
+                        <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/60 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.07)] border border-white/50 transition-transform hover:scale-[1.01] duration-500">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <Sparkles className="text-yellow-500 animate-pulse" size={28} />
+                                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-rose-500 pb-2">
+                                        {getGreeting()}
+                                    </h1>
+                                </div>
+                                <p className="text-slate-600 font-medium ml-1">
+                                    今日は <span className="text-indigo-600 font-bold">{time.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</span> ({time.toLocaleDateString('ja-JP', { weekday: 'short' })})
+                                </p>
+                            </div>
+                            <div className="mt-4 md:mt-0 text-right bg-white/40 px-6 py-3 rounded-3xl shadow-inner border border-white/60 flex flex-col items-end gap-1">
+                                <div className="text-5xl lg:text-6xl font-mono font-light text-slate-700 tracking-tighter" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.05)' }}>
+                                    {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: showSeconds ? '2-digit' : undefined })}
+                                </div>
+                                <button onClick={() => setShowSeconds(!showSeconds)} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors bg-white/50 px-3 py-1 rounded-full border border-white/50 hover:bg-white cursor-pointer">
+                                    {showSeconds ? <ToggleRight size={16} className="text-indigo-500" /> : <ToggleLeft size={16} />}
+                                    <span>秒を表示</span>
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Col 1: Todo */}
+                            <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex flex-col h-[38rem] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-3 bg-gradient-to-br from-rose-400 to-orange-400 rounded-2xl text-white shadow-lg shadow-rose-200">
+                                        <ListTodo size={24} />
+                                    </div>
+                                    <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-500 to-orange-600">タスクリスト</h2>
+                                </div>
+                                <form onSubmit={addTodo} className="relative mb-6 group">
+                                    <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="新しいタスクを入力..." className="w-full pl-5 pr-12 py-4 rounded-2xl bg-white/70 border-2 border-transparent focus:border-rose-300 focus:bg-white outline-none transition-all shadow-sm group-hover:shadow-md text-slate-700 placeholder:text-slate-400" />
+                                    <button type="submit" className="absolute right-2 top-2 bottom-2 aspect-square bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md flex items-center justify-center">
+                                        <Plus size={20} />
+                                    </button>
+                                </form>
+                                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                    {todos.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+                                                <Sparkles size={24} className="text-slate-300" />
+                                            </div>
+                                            <p className="text-sm font-medium">タスクはありません ✨</p>
+                                        </div>
+                                    ) : (
+                                        todos.map(todo => (
+                                            <div key={todo.id} className={`group flex items-center justify-between p-4 rounded-2xl transition-all duration-300 border ${todo.completed ? 'bg-slate-50/50 border-transparent text-slate-400' : 'bg-white/80 border-white shadow-sm hover:shadow-md hover:scale-[1.02] hover:-translate-y-0.5'}`}>
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <button onClick={() => toggleTodo(todo.id)} className={`flex-shrink-0 transition-all duration-300 rounded-full p-1 ${todo.completed ? 'text-rose-300 bg-rose-50' : 'text-slate-300 hover:text-rose-500 hover:bg-rose-50'}`}>
+                                                        <CheckCircle2 size={22} className={todo.completed ? "fill-rose-400 text-white" : ""} />
+                                                    </button>
+                                                    <span className={`truncate font-medium transition-all ${todo.completed ? 'line-through decoration-rose-300 decoration-2' : 'text-slate-700'}`}>
+                                                        {todo.text}
+                                                    </span>
+                                                </div>
+                                                <button onClick={() => deleteTodo(todo.id)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Col 2: Calendar */}
+                            <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex flex-col h-[38rem] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl text-white shadow-lg shadow-blue-200">
+                                            <CalendarIcon size={24} />
+                                        </div>
+                                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">カレンダー</h2>
+                                    </div>
+                                    <button onClick={goToToday} className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors border border-blue-100">
+                                        Today
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between mb-4 bg-white/50 p-2 rounded-2xl border border-white/60">
+                                    <button onClick={prevMonth} className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-blue-600 transition-all shadow-sm hover:shadow">
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <h3 className="text-lg font-bold text-slate-700 tracking-wide">
+                                        {currentDate.getFullYear()} <span className="text-sm font-normal text-slate-500">/</span> {currentDate.getMonth() + 1}
+                                    </h3>
+                                    <button onClick={nextMonth} className="p-2 hover:bg-white rounded-xl text-slate-500 hover:text-blue-600 transition-all shadow-sm hover:shadow">
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-7 mb-2">
+                                    {weekDays.map((day, index) => (
+                                        <div key={day} className={`text-center text-xs font-bold py-2 ${index === 0 ? 'text-rose-500' : index === 6 ? 'text-blue-500' : 'text-slate-400'}`}>
+                                            {day}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="grid grid-cols-7 gap-y-1">
+                                        {getCalendarDays()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Col 3: Timer & Weather */}
+                            <div className="space-y-6 flex flex-col h-[38rem]">
+                                {/* Timer */}
+                                <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 relative overflow-hidden flex flex-col justify-between group transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500 h-80">
+                                    <div className="flex items-center justify-between relative z-10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl text-white shadow-lg shadow-indigo-200">
+                                                <Clock size={24} />
+                                            </div>
+                                            <h2 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Timer</h2>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-white/50 rounded-xl hover:bg-white hover:text-indigo-600 transition-colors text-slate-500 border border-white/50" title={isMuted ? "音声をオン" : "音声をオフ"}>
+                                                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                            </button>
+                                            <button onClick={openTimerSettings} className="p-2 bg-white/50 rounded-xl hover:bg-white hover:text-indigo-600 transition-colors text-slate-500 border border-white/50" title="時間設定">
+                                                <Settings size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {isTimerSettingsOpen ? (
+                                        <div className="flex flex-col items-center justify-center relative z-10 flex-1 w-full gap-2">
+                                            <div className="flex gap-2 w-full justify-center">
+                                                {[5, 15, 25].map(min => (
+                                                    <button key={min} onClick={() => setPresetTime(min)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 transition-all ${customMinutes === min ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white/50 border-transparent text-slate-600 hover:bg-white'}`}>
+                                                        {min}分
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="number" min="1" max="180" value={customMinutes} onChange={(e) => setCustomMinutes(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 text-center text-3xl font-bold bg-white/70 rounded-xl py-2 border-2 border-transparent focus:border-indigo-400 outline-none text-slate-700" />
+                                                <span className="font-bold text-slate-500">分</span>
+                                            </div>
+                                            <div className="flex flex-col w-full gap-2">
+                                                <button onClick={saveTimerSettings} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-2 rounded-xl shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all">
+                                                    決定
+                                                </button>
+                                                <button onClick={triggerNewYearCelebration} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white font-bold py-2 rounded-xl shadow-md hover:shadow-rose-200 hover:-translate-y-0.5 transition-all text-sm">
+                                                    <PartyPopper size={16} />
+                                                    年越しテスト
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center relative z-10 py-2 flex-1">
+                                            <div className="text-6xl font-mono font-bold text-slate-700 tracking-wider mb-4 drop-shadow-sm">
+                                                {formatTime(timeLeft)}
+                                            </div>
+                                            <div className="flex gap-4 w-full justify-center px-4">
+                                                <button onClick={toggleTimer} className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all flex-1 shadow-lg transform active:scale-95 ${isTimerRunning ? 'bg-amber-100 text-amber-600 hover:bg-amber-200 border-2 border-amber-200' : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:shadow-indigo-300 hover:-translate-y-1 border-2 border-transparent'}`}>
+                                                    {isTimerRunning ? <Pause size={20} /> : <Play size={20} />}
+                                                    {isTimerRunning ? 'PAUSE' : 'START'}
+                                                </button>
+                                                <button onClick={resetTimer} className="p-3 rounded-2xl bg-white border-2 border-slate-100 text-slate-400 hover:text-indigo-500 hover:border-indigo-100 hover:bg-indigo-50 transition-all shadow-sm hover:rotate-180 duration-500">
+                                                    <RotateCcw size={20} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="absolute bottom-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: `${(timeLeft / initialDuration) * 100}%` }}></div>
+                                </div>
+
+                                {/* Weather */}
+                                <div className="bg-white/60 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_8px_32px_rgba(31,38,135,0.05)] border border-white/50 flex-1 flex flex-col justify-between group transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.1)] duration-500">
+                                    <div className="flex justify-between items-start relative z-10">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+                                                <Cloud size={20} />
+                                            </div>
+                                            <h2 className="text-lg font-bold text-slate-700">Weather</h2>
+                                        </div>
+                                        <div className="relative">
+                                            <button onClick={() => setIsLocationSelectorOpen(!isLocationSelectorOpen)} className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-white/50 hover:bg-white px-2 py-1 rounded-lg border border-white/50 transition-all">
+                                                <MapPin size={12} />
+                                                {selectedLocation.name}
+                                            </button>
+                                            {isLocationSelectorOpen && (
+                                                <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-md rounded-xl shadow-xl border border-slate-100 p-2 z-20 w-32 grid gap-1">
+                                                    {LOCATIONS.map(loc => (
+                                                        <button key={loc.name} onClick={() => { setSelectedLocation(loc); setIsLocationSelectorOpen(false); }} className={`text-left text-xs font-medium px-2 py-1.5 rounded-lg transition-colors ${selectedLocation.name === loc.name ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}>
+                                                            {loc.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {weather ? (
+                                        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+                                            <div className="scale-[2.0]">{getWeatherIcon(weather.current_weather.weathercode)}</div>
+                                            <div className="flex flex-col items-center">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-6xl font-bold text-slate-800">{Math.round(weather.current_weather.temperature)}</span>
+                                                    <span className="text-2xl font-medium text-slate-500">°C</span>
+                                                </div>
+                                                <span className="text-xl font-bold text-slate-500 mt-1">{getWeatherDescription(weather.current_weather.weathercode)}</span>
+                                            </div>
+                                            <div className="flex gap-6 mt-2 bg-white/40 px-6 py-2 rounded-xl border border-white/50">
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs font-bold text-slate-400">High</span>
+                                                    <span className="text-lg font-bold text-red-400">{Math.round(weather.daily.temperature_2m_max[0])}°</span>
+                                                </div>
+                                                <div className="w-px bg-slate-200"></div>
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs font-bold text-slate-400">Low</span>
+                                                    <span className="text-lg font-bold text-blue-400">{Math.round(weather.daily.temperature_2m_min[0])}°</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex items-center justify-center text-sm text-slate-400">Loading Weather...</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
